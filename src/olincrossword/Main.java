@@ -27,6 +27,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -142,20 +143,16 @@ public class Main {
 	
 	
 	private static boolean fits(String word, int i, int j, int across, char[][] grid) {
-//		System.out.println(word);
 		for (int l = 0; l < word.length(); l ++) {
 			if (across>0) {
-//				System.out.printf("%s: The grid has %s at %d,%d\n", word.charAt(l), grid[i][j+l], i, j+l);
 				if (grid[i][j+l] != ' ' && grid[i][j+l] != word.charAt(l))
 					return false;
 			}
 			else {
-//				System.out.printf("%s: The grid has %s at %d,%d\n", word.charAt(l), grid[i+l][j], i+l, j);
 				if (grid[i+l][j] != ' ' && grid[i+l][j] != word.charAt(l))
 					return false;
 			}
 		}
-//		System.out.println("You've passed my test.");
 		return true;
 	}
 	
@@ -192,7 +189,7 @@ public class Main {
 				while ((w = in.readLine()) != null) // read each word
 					wordsFromThisFile.add(w);
 				
-				// randomise
+				Collections.shuffle(wordsFromThisFile);
 				
 				for (String word: wordsFromThisFile) { // now go through and process them in their new order:
 					int len = word.split(" ")[0].length(); // get the length (it's not so simple)
