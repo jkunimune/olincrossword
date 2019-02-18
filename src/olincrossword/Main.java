@@ -26,6 +26,7 @@ package olincrossword;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -43,6 +44,7 @@ public class Main {
 	
 	public static void main(String[] args) throws IOException {
 		final char[][] grid = loadInitialState();
+		final String[][] words = loadWords();
 		final Map<Integer, Integer> hist = new LinkedHashMap<Integer, Integer>();
 		
 		System.out.println(toString(grid));
@@ -94,7 +96,7 @@ public class Main {
 			if (maxL == 0) // if we didn't find a single slot to fill
 				break;
 			
-			String word = chooseWord(grid, maxL, bestI, bestJ, bestAcr);
+			String word = chooseWord(maxL, bestI, bestJ, bestAcr, grid, words);
 			for (int k = 0; k < maxL; k ++)
 				if (bestAcr>0)
 					grid[bestI+k][bestJ] = word.charAt(k);
@@ -109,18 +111,14 @@ public class Main {
 	}
 	
 	
-	private static String
-			chooseWord(char[][] grid, int len, int i, int j, int across) {
-		String x = "";
-		for (int k = 0; k < len; k ++)
-			x += k;
+	private static String chooseWord(int len, int i, int j, int across, char[][] grid, String[][] words) {
 		try {
 			Thread.sleep(500);
 		} catch (InterruptedException e) {
 			// TODO: Handle this
 			e.printStackTrace();
 		}
-		return x;
+		return words[len][0];
 	}
 	
 	
@@ -140,6 +138,39 @@ public class Main {
 			}
 		} finally {
 			in.close();
+		}
+		return out;
+	}
+	
+	
+	private static String[][] loadWords() throws IOException {
+		List<List<String>> bins = new ArrayList<List<String>>(SIZE);
+		
+		for (String wordGroup: new String[] {"olin", "scholarly", "ukacd"}) {
+			BufferedReader in = new BufferedReader(new FileReader(String.format("res/%swords.txt", wordGroup)));
+			try {
+				List<String> wordsFromThisFile = new LinkedList<String>();
+				String w;
+				while ((w = in.readLine()) != null) // read each word
+					wordsFromThisFile.add(w);
+				
+				// randomise
+				
+				for (String word: wordsFromThisFile) { // now go through and process them in their new order:
+					int len = word.split(" ")[0].length(); // get the length (it's not so simple)
+					while (len >= bins.size())
+						bins.add(new LinkedList<String>()); // make sure its length has a corresponding bin
+					bins.get(len).add(word.replace(' ', '#')); // add it to that bin
+				}
+			} finally {
+				in.close();
+			}
+		}
+		
+		String[][] out = new String[bins.size()][]; // finally, convert it all to an array
+		for (int i = 0; i < out.length; i ++) {
+			System.out.println(bins.get(i).size());
+			out[i] = bins.get(i).toArray(new String[0]);
 		}
 		return out;
 	}
