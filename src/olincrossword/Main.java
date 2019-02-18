@@ -27,10 +27,12 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The main thing; make and print out a crossword puzzle!
@@ -46,6 +48,7 @@ public class Main {
 		final char[][] grid = loadInitialState();
 		final String[][] words = loadWords();
 		final Map<Integer, Integer> hist = new LinkedHashMap<Integer, Integer>();
+		final Set<String> used = new HashSet<String>();
 		
 		System.out.println(toString(grid));
 		
@@ -55,29 +58,11 @@ public class Main {
 			int bestAcr = 0; // orientation of best slot
 			for (int i = 1; i < grid.length-1; i ++) { // look at all the slots
 				for (int j = 1; j < grid[i].length-1; j ++) {
-					if (grid[i][j] != '#' && grid[i-1][j] == '#' && grid[i+1][j] != '#') { // across?
-						if (!hist.containsKey(0x10000|i<<8|j)) { // make sure we haven't filled this one
+					if (grid[i][j] != '#' && grid[i-1][j] == '#' && grid[i+1][j] != '#') { // down?
+						if (!hist.containsKey(0x00000|i<<8|j)) { // make sure we haven't filled this one
 							int l = 0, n = 0;
 							while (grid[i+l][j] != '#') {
 								if (grid[i+l][j] != ' ')
-									n ++; // count the intersections
-								l ++; // and the length
-							}
-							if (n > maxN || (n == maxN && l > maxL)) { // if it has more intersections
-								bestI = i; // save it
-								bestJ = j;
-								bestAcr = 1;
-								maxL = l;
-								maxN = n;
-							}
-						}
-					}
-					
-					if (grid[i][j] != '#' && grid[i][j-1] == '#' && grid[i][j+1] != '#') { // down?
-						if (!hist.containsKey(0x00000|i<<8|j)) { // make sure we haven't filled this one
-							int l = 0, n = 0;
-							while (grid[i][j+l] != '#') {
-								if (grid[i][j+l] != ' ')
 									n ++; // count the intersections
 								l ++; // and the length
 							}
@@ -90,19 +75,46 @@ public class Main {
 							}
 						}
 					}
+					
+					if (grid[i][j] != '#' && grid[i][j-1] == '#' && grid[i][j+1] != '#') { // across?
+						if (!hist.containsKey(0x10000|i<<8|j)) { // make sure we haven't filled this one
+							int l = 0, n = 0;
+							while (grid[i][j+l] != '#') {
+								if (grid[i][j+l] != ' ')
+									n ++; // count the intersections
+								l ++; // and the length
+							}
+							if (n > maxN || (n == maxN && l > maxL)) { // if it has more intersections
+								bestI = i; // save it
+								bestJ = j;
+								bestAcr = 1;
+								maxL = l;
+								maxN = n;
+							}
+						}
+					}
 				}
 			}
 			
 			if (maxL == 0) // if we didn't find a single slot to fill
 				break;
 			
-			String word = chooseWord(maxL, bestI, bestJ, bestAcr, grid, words);
-			for (int k = 0; k < maxL; k ++)
+			int choice;
+			try {
+				choice = chooseWord(maxL, bestI, bestJ, bestAcr, grid, words, used);
+			} catch (Exception e) {
+				// TODO: Handle this
+				choice = 0;
+				e.printStackTrace();
+			}
+			String word = words[maxL][choice];
+			for (int k = 0; k < word.length(); k ++) // fill it in
 				if (bestAcr>0)
-					grid[bestI+k][bestJ] = word.charAt(k);
-				else
 					grid[bestI][bestJ+k] = word.charAt(k);
-			hist.put(bestAcr<<16|bestI<<8|bestJ, 0);
+				else
+					grid[bestI+k][bestJ] = word.charAt(k);
+			hist.put(bestAcr<<16|bestI<<8|bestJ, choice);
+			used.add(word); // remember this
 			
 			System.out.println(toString(grid));
 		}
@@ -111,14 +123,40 @@ public class Main {
 	}
 	
 	
-	private static String chooseWord(int len, int i, int j, int across, char[][] grid, String[][] words) {
+	private static int chooseWord(int len, int i, int j, int across, char[][] grid, String[][] words, Set<String> used) throws Exception {
 		try {
 			Thread.sleep(500);
 		} catch (InterruptedException e) {
 			// TODO: Handle this
 			e.printStackTrace();
 		}
-		return words[len][0];
+		for (int k = 0; k < words[len].length; k ++) { // look at our options
+			if (used.contains(words[len][k])) // make sure it hasn't been used
+				continue;
+			if (!fits(words[len][k], i, j, across, grid)) // and that it actually fits
+				continue;
+			return k;
+		}
+		throw new Exception(); // if you didn't find a single one, cry.
+	}
+	
+	
+	private static boolean fits(String word, int i, int j, int across, char[][] grid) {
+//		System.out.println(word);
+		for (int l = 0; l < word.length(); l ++) {
+			if (across>0) {
+//				System.out.printf("%s: The grid has %s at %d,%d\n", word.charAt(l), grid[i][j+l], i, j+l);
+				if (grid[i][j+l] != ' ' && grid[i][j+l] != word.charAt(l))
+					return false;
+			}
+			else {
+//				System.out.printf("%s: The grid has %s at %d,%d\n", word.charAt(l), grid[i+l][j], i+l, j);
+				if (grid[i+l][j] != ' ' && grid[i+l][j] != word.charAt(l))
+					return false;
+			}
+		}
+//		System.out.println("You've passed my test.");
+		return true;
 	}
 	
 	
@@ -160,7 +198,7 @@ public class Main {
 					int len = word.split(" ")[0].length(); // get the length (it's not so simple)
 					while (len >= bins.size())
 						bins.add(new LinkedList<String>()); // make sure its length has a corresponding bin
-					bins.get(len).add(word.replace(' ', '#')); // add it to that bin
+					bins.get(len).add(word.toUpperCase().replace(' ', '#')); // add it to that bin
 				}
 			} finally {
 				in.close();

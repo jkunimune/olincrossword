@@ -34,7 +34,7 @@ mill
 lathe
 cnc
 ducttape
-rip meche math
+rip mech emath
 fea
 comsol
 gusset
@@ -64,7 +64,7 @@ breadboard
 vcc
 vdd
 voltagedivider
-currentsplitter
+splitter
 ref
 capacitor
 impedance
@@ -118,7 +118,7 @@ dx
 meter
 entropy
 mitochondria
-activationenergy
+redbloodcell
 criticalmass
 quark
 plasma
@@ -165,7 +165,7 @@ sodium
 sac
 oco
 oro
-franklyspeaking
+frankly speaking
 acronym
 boardgame
 babo
@@ -191,7 +191,7 @@ textbook
 ical
 meeting
 when2meet
-elevator pitch
+elevatorpitch
 blackbox
 firstyear
 mii
@@ -210,23 +210,25 @@ plusdelta
 bees
 billwarner
 wifi
-thephoenixflies
+the phoenix flies
 turtleneck
 babby
 esperanto
-bikelight
 team
 project
 curtains
 turkey
 doors
-plainjuice
+plain juice
 mars
 capitalism
 timecube
 zamenhof
 dying tissues
 ye
+nota cult
+oberlincollege
+hottub
 reddit
 4chan
 9gag
