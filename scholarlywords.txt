@@ -237,6 +237,8 @@ morpheme
 svo
 voiced
 schwa
+assimilation
+glottalstop
 gallpeters
 mercator
 conic
@@ -329,3 +331,5 @@ lens
 humanrace
 cicero
 amodestproposal
+kamehameha
+liliuokalani
