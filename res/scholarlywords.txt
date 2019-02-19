@@ -250,6 +250,9 @@ tissotsindicatrix
 projection
 orthodrome
 lambert
+mollweide
+waterman
+cahillkeyes
 loxodrome
 gores
 1910s

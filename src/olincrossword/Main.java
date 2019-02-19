@@ -41,7 +41,8 @@ import java.util.Set;
  */
 public class Main {
 	
-	private static final int SIZE = 6;
+	private static final int SIZE = 21;
+	private static final int FRAME_RATE = 4000;
 	
 	
 	public static void main(String[] args) throws IOException {
@@ -50,9 +51,9 @@ public class Main {
 		final LinkedHashMap<Integer, Integer> hist = new LinkedHashMap<Integer, Integer>();
 		final Set<String> used = new HashSet<String>();
 		
-		System.out.println(toString(grid));
-		
+		int display = 0;
 		int alreadyCheckedTo = 0; // how far we've already looked
+		
 		while (true) {
 			int maxL = 0, maxN = 0; // properties of best slot
 			int bestI = 0, bestJ = 0; // location of best slot
@@ -133,9 +134,15 @@ public class Main {
 				alreadyCheckedTo = 0; // anything is fair game now
 			}
 			
-			System.out.println(toString(grid));
+			if (display == 0) {
+				System.out.println(toString(grid));
+				display = FRAME_RATE;
+			}
+			else
+				display --;
 		}
 		
+		System.out.println(toString(grid));
 		System.out.print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
 	}
 	
@@ -229,6 +236,7 @@ public class Main {
 		
 		String[][] out = new String[bins.size()][]; // finally, convert it all to an array
 		for (int i = 0; i < out.length; i ++) {
+			System.out.println(bins.get(i).size());
 			out[i] = bins.get(i).toArray(new String[0]);
 		}
 		return out;
