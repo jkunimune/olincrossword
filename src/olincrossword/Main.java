@@ -32,7 +32,6 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -42,17 +41,18 @@ import java.util.Set;
  */
 public class Main {
 	
-	private static final int SIZE = 21;
+	private static final int SIZE = 6;
 	
 	
 	public static void main(String[] args) throws IOException {
 		final char[][] grid = loadInitialState();
 		final String[][] words = loadWords();
-		final Map<Integer, Integer> hist = new LinkedHashMap<Integer, Integer>();
+		final LinkedHashMap<Integer, Integer> hist = new LinkedHashMap<Integer, Integer>();
 		final Set<String> used = new HashSet<String>();
 		
 		System.out.println(toString(grid));
 		
+		int alreadyCheckedTo = 0; // how far we've already looked
 		while (true) {
 			int maxL = 0, maxN = 0; // properties of best slot
 			int bestI = 0, bestJ = 0; // location of best slot
@@ -100,22 +100,38 @@ public class Main {
 			if (maxL == 0) // if we didn't find a single slot to fill
 				break;
 			
-			int choice;
+			int choice = -1;
 			try {
-				choice = chooseWord(maxL, bestI, bestJ, bestAcr, grid, words, used);
-			} catch (Exception e) {
-				// TODO: Handle this
-				choice = 0;
-				e.printStackTrace();
+				choice = chooseWord(maxL, bestI, bestJ, bestAcr, grid, words, used, alreadyCheckedTo); // try to find a word that fits
 			}
-			String word = words[maxL][choice];
-			for (int k = 0; k < word.length(); k ++) // fill it in
-				if (bestAcr>0)
-					grid[bestI][bestJ+k] = word.charAt(k);
-				else
-					grid[bestI+k][bestJ] = word.charAt(k);
-			hist.put(bestAcr<<16|bestI<<8|bestJ, choice);
-			used.add(word); // remember this
+			catch (RuntimeException e) { // if you can't find one,
+				for (int i = 0; i < grid.length; i ++)
+					for (int j = 0; j < grid[i].length; j ++)
+						grid[i][j] = (grid[i][j] == '#') ? '#' : ' '; // reset the grid
+				int afterThis = hist.size();
+				for (Integer slot: hist.keySet()) { // recall the history
+					afterThis --;
+					int across = slot>>16, i = slot>>8&0x0ff, j = slot&0x000ff;
+					int l = 0;
+					while ((across>0 ? grid[i][j+l] : grid[i+l][j]) != '#')
+						l ++;
+					if (afterThis > 0) {
+						fill(words[l][hist.get(slot)], i, j, across, grid); // and refill all the previous words
+					}
+					else { // EXCEPT for the last one
+						alreadyCheckedTo = hist.get(slot)+1;
+						used.remove(words[l][hist.get(slot)]);
+						hist.remove(slot); // which ought to be removed (after recording which words won't work)
+					}
+				}
+			}
+			if (choice >= 0) { // if you in fact did find a reasonable choice
+				String word = words[maxL][choice]; // assuming you succeeded in choosing a word,
+				fill(word, bestI, bestJ, bestAcr, grid); // put it in
+				hist.put(bestAcr<<16|bestI<<8|bestJ, choice);
+				used.add(word); // remember this
+				alreadyCheckedTo = 0; // anything is fair game now
+			}
 			
 			System.out.println(toString(grid));
 		}
@@ -124,36 +140,45 @@ public class Main {
 	}
 	
 	
-	private static int chooseWord(int len, int i, int j, int across, char[][] grid, String[][] words, Set<String> used) throws Exception {
-		try {
-			Thread.sleep(500);
-		} catch (InterruptedException e) {
-			// TODO: Handle this
-			e.printStackTrace();
-		}
-		for (int k = 0; k < words[len].length; k ++) { // look at our options
-			if (used.contains(words[len][k])) // make sure it hasn't been used
+	private static int chooseWord(int len, int i, int j, int across, char[][] grid, String[][] words, Set<String> used, int startAt) throws RuntimeException {
+		for (int k = startAt; k < words[len].length; k ++) { // look at our options
+			if (used.contains(words[len][k])) { // make sure it hasn't been used
 				continue;
-			if (!fits(words[len][k], i, j, across, grid)) // and that it actually fits
+			}
+			if (!fits(words[len][k], i, j, across, grid)) { // and that it actually fits
 				continue;
+			}
 			return k;
 		}
-		throw new Exception(); // if you didn't find a single one, cry.
+		throw new RuntimeException(String.format("%d,%d %s (%d); from %d", i, j, across>0?"across":"down", len, startAt)); // if you didn't find a single one, cry.
 	}
 	
 	
 	private static boolean fits(String word, int i, int j, int across, char[][] grid) {
 		for (int l = 0; l < word.length(); l ++) {
 			if (across>0) {
+				if (word.charAt(l) == '#' && grid[i][j+l] != '#')
+					return false;
 				if (grid[i][j+l] != ' ' && grid[i][j+l] != word.charAt(l))
 					return false;
 			}
 			else {
+				if (word.charAt(l) == '#' && grid[i+1][j] != '#')
+					return false;
 				if (grid[i+l][j] != ' ' && grid[i+l][j] != word.charAt(l))
 					return false;
 			}
 		}
 		return true;
+	}
+	
+	
+	private static void fill(String word, int i, int j, int across, char[][] grid) {
+		for (int k = 0; k < word.length(); k ++) // fill it in
+			if (across>0)
+				grid[i][j+k] = word.charAt(k);
+			else
+				grid[i+k][j] = word.charAt(k);
 	}
 	
 	
@@ -189,7 +214,7 @@ public class Main {
 				while ((w = in.readLine()) != null) // read each word
 					wordsFromThisFile.add(w);
 				
-				Collections.shuffle(wordsFromThisFile);
+				Collections.shuffle(wordsFromThisFile); // randomise!
 				
 				for (String word: wordsFromThisFile) { // now go through and process them in their new order:
 					int len = word.split(" ")[0].length(); // get the length (it's not so simple)
@@ -204,7 +229,6 @@ public class Main {
 		
 		String[][] out = new String[bins.size()][]; // finally, convert it all to an array
 		for (int i = 0; i < out.length; i ++) {
-			System.out.println(bins.get(i).size());
 			out[i] = bins.get(i).toArray(new String[0]);
 		}
 		return out;
